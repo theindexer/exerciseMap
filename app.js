@@ -9,6 +9,13 @@ function initMap() {
   });
 }
 
+function toggleLayers() {
+  document.querySelectorAll('input[type=checkbox]').forEach(e => e.addEventListener('change', e => {
+    const id = e.target.name;
+    map.setLayoutProperty(id, 'visibility', e.target.checked ? 'visible' : 'none');
+  }));
+}
+
 function readActivities() {
   const swarmInput = document.getElementById('activityjson');
   swarmInput.addEventListener('change', handleJson, false);
@@ -112,4 +119,5 @@ function toFeatures(activities) {
 
 readActivities();
 initMap();
+toggleLayers();
 
