@@ -1,4 +1,6 @@
 var map;
+const dateSlider = document.getElementById('dateSlider');
+
 function initMap() {
   mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN; // defined in credentials.js
    map = new mapboxgl.Map({
@@ -32,9 +34,24 @@ function handleJson() {
 
 function addPaths(rawActivities) {
   let activities = rawActivities.map(a => toActivity(a));
-  let lines = toFeatures(activities);
+  dateSlider.min = activities[0].date;
+  dateSlider.max = activities[activities.length - 1].date;
+  dateSlider.value = dateSlider.max;
+  lines = toFeatures(activities);
 
   map.addSource('strava', lines);
+  let visilibityFilter = ['>', ['get', 'age'], 0];
+
+  function mostRecentWidth(otherwise) {
+    return ['case',
+        ['==', ['get', 'mostRecent'], true],
+        6,
+        otherwise];
+  }
+
+  let lineWidth = 
+    ['interpolate', ['linear'], ['zoom'], 5, mostRecentWidth(1), 20, mostRecentWidth(4)];
+    
   map.addLayer({
     id: 'ride',
     type: 'line',
@@ -44,10 +61,11 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', 0, ['-', 255, ['get', 'age']], 0],
-      'line-width': 4,
+      'line-color': ['rgb', ['case', ['==', ['get', 'mostRecent'], true], 255, 0], ['-', 255, ['get', 'age']], 0],
+      'line-width': ['interpolate', ['linear'], ['zoom'], 1, mostRecentWidth(1), 20, mostRecentWidth(4)],
+
     },
-    filter: ['==', ['get', 'type'], 'Ride'],
+    filter: ['all', visilibityFilter, ['==', ['get', 'type'], 'Ride']],
   });
   map.addLayer({
     id: 'run',
@@ -58,10 +76,10 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', ['-', 255, ['get', 'age']], 0, 0],
-      'line-width': 4,
+      'line-color': ['rgb', ['-', 255, ['get', 'age']], 0, ['case', ['==', ['get', 'mostRecent'], true], 255, 0]],
+      'line-width': lineWidth,
     },
-    filter: ['==', ['get', 'type'], 'Run'],
+    filter: ['all', visilibityFilter, ['==', ['get', 'type'], 'Run']],
   });
   map.addLayer({
     id: 'walk',
@@ -72,10 +90,10 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', 0, 0, ['-', 255, ['get', 'age']]],
-      'line-width': 4,
+      'line-color': ['rgb', 0, ['case', ['==', ['get', 'mostRecent'], true], 255, 0], ['-', 255, ['get', 'age']]],
+      'line-width': lineWidth,
     },
-    filter: ['==', ['get', 'type'], 'Walk'],
+    filter: ['all', visilibityFilter, ['==', ['get', 'type'], 'Walk']],
   });
 }
 
@@ -87,7 +105,7 @@ function toActivity(activity) {
   return {
     name: activity.name,
     type: activity.type,
-    date: activity.start_date_local,
+    date: new Date(activity.start_date_local).getTime(),
     distance: activity.distance,
     elapsedTime: activity.elapsed_time,
     movingTime: activity.moving_time,
@@ -107,7 +125,8 @@ function toFeatures(activities) {
             'type': 'Feature',
             'properties': {},
             'properties': {
-              'age': (new Date() - new Date(a.date)) / 1000 / 60 / 60 / 24,
+              'age': (new Date() - a.date) / 1000 / 60 / 60 / 24,
+              'time': a.date,
               'type': a.type,
             },
             'geometry': a.path,
@@ -116,6 +135,49 @@ function toFeatures(activities) {
     }
   };
 }
+
+const dateOutput = document.getElementById('dateOutput');
+
+dateSlider.oninput = function() {
+  const time = parseInt(this.value);
+  dateOutput.innerHTML = new Date(time).toISOString().split("T")[0];
+  let mostRecentFeature = null;
+  lines.data.features.forEach(f => {
+    f.properties.age = (time - f.properties.time) / 1000 / 60 /60 / 24;
+    f.properties.mostRecent = false;
+    if (f.properties.age > 0) {
+      mostRecentFeature = f;
+    }
+  });
+
+  if (mostRecentFeature) {
+    mostRecentFeature.properties.mostRecent = true;
+    var coordinates = mostRecentFeature.geometry.coordinates;
+    var bounds = coordinates.reduce((bounds, coord) => {
+      return bounds.extend(coord);
+    }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+    var curBounds = map.getBounds();
+    if (!(curBounds.contains(bounds.getNorthWest()) &&
+        curBounds.contains(bounds.getNorthEast()) &&
+        curBounds.contains(bounds.getSouthWest()) &&
+        curBounds.contains(bounds.getSouthEast()))) {
+      map.fitBounds(bounds, {
+        padding: 60,
+        maxZoom: 12,
+      });
+    }
+  }
+  map.getSource('strava').setData(lines.data);
+}
+
+document.body.addEventListener('keydown', e => {
+  if (e.key == ']') {
+    dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
+  } else if (e.key == '[') {
+    dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
+  }
+  dateSlider.dispatchEvent(new Event('input'));
+});
 
 readActivities();
 initMap();
