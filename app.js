@@ -164,6 +164,7 @@ dateSlider.oninput = function() {
       map.fitBounds(bounds, {
         padding: 60,
         maxZoom: 12,
+        easing: i => Math.min(i * 10, 1),
       });
     }
   }
