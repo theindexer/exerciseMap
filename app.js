@@ -207,9 +207,10 @@ dateSlider.oninput = function() {
         curBounds.contains(bounds.getSouthWest()) &&
         curBounds.contains(bounds.getSouthEast()))) {
       map.fitBounds(bounds, {
+        duration: 500,
         padding: 60,
         maxZoom: 12,
-        easing: i => Math.min(i * 10, 1),
+        easing: i => i,
       });
     }
   }
@@ -217,12 +218,14 @@ dateSlider.oninput = function() {
 }
 
 document.body.addEventListener('keydown', e => {
-  if (e.key == ']') {
-    dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
-  } else if (e.key == '[') {
-    dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
+  if (!map.isMoving()) {
+    if (e.key == ']') {
+      dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
+    } else if (e.key == '[') {
+      dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
+    }
+    dateSlider.dispatchEvent(new Event('input'));
   }
-  dateSlider.dispatchEvent(new Event('input'));
 });
 
 readActivities();
