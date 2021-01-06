@@ -5,7 +5,7 @@ function initMap() {
   mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN; // defined in credentials.js
    map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v11',
+    style: 'mapbox://styles/mapbox/outdoors-v11?optimize=true',
     center: [-72.7, 41.5],
     zoom: 9
   });
@@ -85,7 +85,7 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', rideRunWalk(255, 255, 0, 0), rideRunWalk(255, 0, 255, 0), rideRunWalk(0, 255, 255, 0)],
+      'line-color': ['rgb', rideRunWalk(255, 255, 0, 0), rideRunWalk(255, 128, 255, 0), rideRunWalk(0, 255, 255, 0)],
       'line-width': lineWidth(8),
 
     },
@@ -212,15 +212,21 @@ dateSlider.oninput = function() {
   map.getSource('strava').setData(lines.data);
 }
 
+lastMoveTime = 0;
 document.body.addEventListener('keydown', e => {
-  if (!map.isMoving()) {
-    if (e.key == ']') {
-      dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
-    } else if (e.key == '[') {
-      dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
-    }
-    dateSlider.dispatchEvent(new Event('input'));
+  if (map.isMoving()) {
+    lastMoveTime = Date.now();
+    return;
   }
+  if (Date.now() - lastMoveTime < 1000) {
+    return;
+  }
+  if (e.key == ']') {
+    dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
+  } else if (e.key == '[') {
+    dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
+  }
+  dateSlider.dispatchEvent(new Event('input'));
 });
 
 readActivities();
