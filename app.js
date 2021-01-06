@@ -40,20 +40,33 @@ function addPaths(rawActivities) {
   lines = toFeatures(activities);
 
   map.addSource('strava', lines);
-  let visilibityFilter = ['>', ['get', 'age'], 0];
+  let visibilityFilter = ['>', ['get', 'age'], 0];
+  let mostRecent = ['==', ['get', 'mostRecent'], true];
+  let isRide = ['==', ['get', 'type'], 'Ride'];
+  let isWalk = ['==', ['get', 'type'], 'Walk'];
+  let isRun = ['==', ['get', 'type'], 'Run'];
 
+  function rideRunWalk(ride, run, walk, otherwise) {
+    return ['case', 
+      isRide, ride,
+      isRun, run,
+      isWalk, walk,
+      otherwise,
+    ]
+  }
   function mostRecentWidth(otherwise) {
-    return ['case',
-        ['==', ['get', 'mostRecent'], true],
+    return
+      ['case',
+        mostRecent,
         6,
         otherwise];
   }
 
+
   let lineWidth = 
     ['interpolate', ['linear'], ['zoom'], 5, mostRecentWidth(1), 20, mostRecentWidth(4)];
-    
   map.addLayer({
-    id: 'ride',
+    id: 'all',
     type: 'line',
     source: 'strava',
     layout: {
@@ -61,14 +74,15 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', ['case', ['==', ['get', 'mostRecent'], true], 255, 0], ['-', 255, ['get', 'age']], 0],
-      'line-width': ['interpolate', ['linear'], ['zoom'], 1, mostRecentWidth(1), 20, mostRecentWidth(4)],
+      'line-color': ['rgb', rideRunWalk(0, 255, 0, 0), rideRunWalk(255, 0, 0, 0), rideRunWalk(0, 0, 255, 0)],
+      'line-width': 4,
 
     },
-    filter: ['all', visilibityFilter, ['==', ['get', 'type'], 'Ride']],
+    filter: ['all', ['!', mostRecent], visibilityFilter],
   });
+    
   map.addLayer({
-    id: 'run',
+    id: 'mostRecent',
     type: 'line',
     source: 'strava',
     layout: {
@@ -76,25 +90,56 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', ['-', 255, ['get', 'age']], 0, ['case', ['==', ['get', 'mostRecent'], true], 255, 0]],
-      'line-width': lineWidth,
+      'line-color': ['rgb', rideRunWalk(255, 255, 0, 0), rideRunWalk(255, 0, 255, 0), rideRunWalk(0, 255, 255, 0)],
+      'line-width': 4,
+
     },
-    filter: ['all', visilibityFilter, ['==', ['get', 'type'], 'Run']],
+    filter: ['all', mostRecent, visibilityFilter],
   });
-  map.addLayer({
-    id: 'walk',
-    type: 'line',
-    source: 'strava',
-    layout: {
-      'line-join': 'round',
-      'line-cap': 'round',
-    },
-    paint: {
-      'line-color': ['rgb', 0, ['case', ['==', ['get', 'mostRecent'], true], 255, 0], ['-', 255, ['get', 'age']]],
-      'line-width': lineWidth,
-    },
-    filter: ['all', visilibityFilter, ['==', ['get', 'type'], 'Walk']],
-  });
+//
+//  map.addLayer({
+//    id: 'ride',
+//    type: 'line',
+//    source: 'strava',
+//    layout: {
+//      'line-join': 'round',
+//      'line-cap': 'round',
+//    },
+//    paint: {
+//      'line-color': ['rgb', ['case', ['==', ['get', 'mostRecent'], true], 255, 0], ['-', 255, ['get', 'age']], 0],
+//      'line-width': ['interpolate', ['linear'], ['zoom'], 1, mostRecentWidth(1), 20, mostRecentWidth(4)],
+//
+//    },
+//    filter: ['all', visibilityFilter, ['==', ['get', 'type'], 'Ride']],
+//  });
+//  map.addLayer({
+//    id: 'run',
+//    type: 'line',
+//    source: 'strava',
+//    layout: {
+//      'line-join': 'round',
+//      'line-cap': 'round',
+//    },
+//    paint: {
+//      'line-color': ['rgb', ['-', 255, ['get', 'age']], 0, ['case', ['==', ['get', 'mostRecent'], true], 255, 0]],
+//      'line-width': lineWidth,
+//    },
+//    filter: ['all', visibilityFilter, ['==', ['get', 'type'], 'Run']],
+//  });
+//  map.addLayer({
+//    id: 'walk',
+//    type: 'line',
+//    source: 'strava',
+//    layout: {
+//      'line-join': 'round',
+//      'line-cap': 'round',
+//    },
+//    paint: {
+//      'line-color': ['rgb', 0, ['case', ['==', ['get', 'mostRecent'], true], 255, 0], ['-', 255, ['get', 'age']]],
+//      'line-width': lineWidth,
+//    },
+//    filter: ['all', visibilityFilter, ['==', ['get', 'type'], 'Walk']],
+//  });
 }
 
 function toActivity(activity) {
