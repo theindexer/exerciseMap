@@ -45,6 +45,7 @@ function addPaths(rawActivities) {
   let isRide = ['==', ['get', 'type'], 'Ride'];
   let isWalk = ['==', ['get', 'type'], 'Walk'];
   let isRun = ['==', ['get', 'type'], 'Run'];
+  let aged255 = ['-', 255, ['get', 'age']];
 
   function rideRunWalk(ride, run, walk, otherwise) {
     return ['case', 
@@ -54,17 +55,11 @@ function addPaths(rawActivities) {
       otherwise,
     ]
   }
-  function mostRecentWidth(otherwise) {
-    return
-      ['case',
-        mostRecent,
-        6,
-        otherwise];
+
+
+  function lineWidth(max) {
+    return ['interpolate', ['linear'], ['zoom'], 5, 1, 20, max];
   }
-
-
-  let lineWidth = 
-    ['interpolate', ['linear'], ['zoom'], 5, mostRecentWidth(1), 20, mostRecentWidth(4)];
   map.addLayer({
     id: 'all',
     type: 'line',
@@ -74,8 +69,8 @@ function addPaths(rawActivities) {
       'line-cap': 'round',
     },
     paint: {
-      'line-color': ['rgb', rideRunWalk(0, 255, 0, 0), rideRunWalk(255, 0, 0, 0), rideRunWalk(0, 0, 255, 0)],
-      'line-width': 4,
+      'line-color': ['rgb', rideRunWalk(0, aged255, 0, 0), rideRunWalk(aged255, 0, 0, 0), rideRunWalk(0, 0, aged255, 0)],
+      'line-width': lineWidth(4),
 
     },
     filter: ['all', ['!', mostRecent], visibilityFilter],
@@ -91,7 +86,7 @@ function addPaths(rawActivities) {
     },
     paint: {
       'line-color': ['rgb', rideRunWalk(255, 255, 0, 0), rideRunWalk(255, 0, 255, 0), rideRunWalk(0, 255, 255, 0)],
-      'line-width': 4,
+      'line-width': lineWidth(8),
 
     },
     filter: ['all', mostRecent, visibilityFilter],
@@ -209,7 +204,7 @@ dateSlider.oninput = function() {
       map.fitBounds(bounds, {
         duration: 500,
         padding: 60,
-        maxZoom: 12,
+        maxZoom: 13,
         easing: i => i,
       });
     }
