@@ -1,6 +1,45 @@
 var map;
 const dateSlider = document.getElementById('dateSlider');
 
+// various paint expressions
+const visibilityFilter = ['>', ['get', 'age'], 0];
+const mostRecent = ['==', ['get', 'mostRecent'], true];
+const aged255 = ['-', 255, ['get', 'age']];
+const visibilityFilter = ['>', ['get', 'age'], 0];
+const mostRecent = ['==', ['get', 'mostRecent'], true];
+const isRide = ['==', ['get', 'type'], 'Ride'];
+const isWalk = ['==', ['get', 'type'], 'Walk'];
+const isRun = ['==', ['get', 'type'], 'Run'];
+
+function rideRunWalk(ride, run, walk, otherwise) {
+  return ['case',
+    isRide, ride,
+    isRun, run,
+    isWalk, walk,
+    otherwise,
+  ]
+}
+
+function getVisibilityFilter(isMostRecent, restrictions) {
+  var mostRecentFilter = mostRecent;
+  if (!isMostRecent) {
+    mostRecentFilter = ['!', mostRecentFilter];
+  }
+  return ['all', mostRecentFilter, visibilityFilter, restrictions];
+}
+
+function toggleLayers() {
+  document.querySelectorAll('input[type=checkbox]').forEach(e => e.addEventListener('change', e => {
+    const toggleFilter = rideRunWalk(
+      document.getElementsByName("ride")[0].checked,
+      document.getElementsByName("run")[0].checked,
+      document.getElementsByName("walk")[0].checked,
+      false);
+    map.setFilter('all', getVisibilityFilter(false, toggleFilter));
+    map.setFilter('mostRecent', getVisibilityFilter(true, toggleFilter));
+  }));
+}
+
 function initMap() {
   mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN; // defined in credentials.js
    map = new mapboxgl.Map({
@@ -9,13 +48,6 @@ function initMap() {
     center: [-72.7, 41.5],
     zoom: 9
   });
-}
-
-function toggleLayers() {
-  document.querySelectorAll('input[type=checkbox]').forEach(e => e.addEventListener('change', e => {
-    const id = e.target.name;
-    map.setLayoutProperty(id, 'visibility', e.target.checked ? 'visible' : 'none');
-  }));
 }
 
 function readActivities() {
@@ -40,22 +72,6 @@ function addPaths(rawActivities) {
   lines = toFeatures(activities);
 
   map.addSource('strava', lines);
-  let visibilityFilter = ['>', ['get', 'age'], 0];
-  let mostRecent = ['==', ['get', 'mostRecent'], true];
-  let isRide = ['==', ['get', 'type'], 'Ride'];
-  let isWalk = ['==', ['get', 'type'], 'Walk'];
-  let isRun = ['==', ['get', 'type'], 'Run'];
-  let aged255 = ['-', 255, ['get', 'age']];
-
-  function rideRunWalk(ride, run, walk, otherwise) {
-    return ['case', 
-      isRide, ride,
-      isRun, run,
-      isWalk, walk,
-      otherwise,
-    ]
-  }
-
 
   function lineWidth(max) {
     return ['interpolate', ['linear'], ['zoom'], 5, 1, 20, max];
@@ -74,7 +90,7 @@ function addPaths(rawActivities) {
       'line-width': lineWidth(4),
 
     },
-    filter: ['all', ['!', mostRecent], visibilityFilter],
+    filter: getVisibilityFilter(false, ["literal", true]),
   });
     
   map.addLayer({
@@ -90,7 +106,7 @@ function addPaths(rawActivities) {
       'line-width': lineWidth(8),
 
     },
-    filter: ['all', mostRecent, visibilityFilter],
+    filter: getVisibilityFilter(true, ["literal", true]),
   });
 //
 //  map.addLayer({
