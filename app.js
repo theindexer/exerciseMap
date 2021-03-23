@@ -70,6 +70,7 @@ function addPaths(rawActivities) {
     },
     paint: {
       'line-color': ['rgb', rideRunWalk(0, aged255, 0, 0), rideRunWalk(aged255, 0, 0, 0), rideRunWalk(0, 0, aged255, 0)],
+      'line-opacity': .5,
       'line-width': lineWidth(4),
 
     },
