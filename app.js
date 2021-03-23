@@ -2,11 +2,9 @@ var map;
 const dateSlider = document.getElementById('dateSlider');
 
 // various paint expressions
-const visibilityFilter = ['>', ['get', 'age'], 0];
 const mostRecent = ['==', ['get', 'mostRecent'], true];
 const aged255 = ['-', 255, ['get', 'age']];
 const visibilityFilter = ['>', ['get', 'age'], 0];
-const mostRecent = ['==', ['get', 'mostRecent'], true];
 const isRide = ['==', ['get', 'type'], 'Ride'];
 const isWalk = ['==', ['get', 'type'], 'Walk'];
 const isRun = ['==', ['get', 'type'], 'Run'];
@@ -231,19 +229,21 @@ dateSlider.oninput = function() {
 
 lastMoveTime = 0;
 document.body.addEventListener('keydown', e => {
-  if (map.isMoving()) {
-    lastMoveTime = Date.now();
-    return;
+  if (e.key == ']' || e.key == '[') {
+    if (map.isMoving()) {
+      lastMoveTime = Date.now();
+      return;
+    }
+    if (Date.now() - lastMoveTime < 1000) {
+      return;
+    }
+    if (e.key == ']') {
+      dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
+    } else if (e.key == '[') {
+      dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
+    }
+    dateSlider.dispatchEvent(new Event('input'));
   }
-  if (Date.now() - lastMoveTime < 1000) {
-    return;
-  }
-  if (e.key == ']') {
-    dateSlider.value = dateSlider.valueAsNumber + 1 * 24 * 60 * 60 * 1000;
-  } else if (e.key == '[') {
-    dateSlider.value = dateSlider.valueAsNumber - 1 * 24 * 60 * 60 * 1000;
-  }
-  dateSlider.dispatchEvent(new Event('input'));
 });
 
 readActivities();
