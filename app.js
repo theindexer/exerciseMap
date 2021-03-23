@@ -28,13 +28,21 @@ function getVisibilityFilter(isMostRecent, restrictions) {
 
 function toggleLayers() {
   document.querySelectorAll('input[type=checkbox]').forEach(e => e.addEventListener('change', e => {
-    const toggleFilter = rideRunWalk(
-      document.getElementsByName("ride")[0].checked,
-      document.getElementsByName("run")[0].checked,
-      document.getElementsByName("walk")[0].checked,
-      false);
-    map.setFilter('all', getVisibilityFilter(false, toggleFilter));
-    map.setFilter('mostRecent', getVisibilityFilter(true, toggleFilter));
+    if (e.target.name == 'age') {
+      var ageDegrade = aged255;
+      if (!e.target.checked) {
+        ageDegrade = 255;
+      }
+      map.setPaintProperty('all', 'line-color', ['rgb', rideRunWalk(0, ageDegrade, 0, 0), rideRunWalk(ageDegrade, 0, 0, 0), rideRunWalk(0, 0, ageDegrade, 0)]);
+    } else {
+      const toggleFilter = rideRunWalk(
+        document.getElementsByName("ride")[0].checked,
+        document.getElementsByName("run")[0].checked,
+        document.getElementsByName("walk")[0].checked,
+        false);
+      map.setFilter('all', getVisibilityFilter(false, toggleFilter));
+      map.setFilter('mostRecent', getVisibilityFilter(true, toggleFilter));
+    }
   }));
 }
 
