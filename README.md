@@ -6,6 +6,7 @@ Marshall exercises most to least recent in the following format:
 ```json
 [
   {
+    "id": "<a unique id>",
     "map": {
       "summary_polyline": "<a polyline>"
     },

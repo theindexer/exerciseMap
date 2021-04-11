@@ -1,4 +1,5 @@
 var map;
+var activities;
 const dateSlider = document.getElementById('dateSlider');
 
 // various paint expressions
@@ -71,17 +72,36 @@ function handleJson() {
 }
 
 function addPaths(rawActivities) {
-  let activities = rawActivities.map(a => toActivity(a));
-  dateSlider.min = activities[0].date;
-  dateSlider.max = activities[activities.length - 1].date;
+  let activityList = rawActivities.map(a => toActivity(a));
+  activities = activityList.reduce(
+    (map, obj) => {
+      map[obj.id] = obj;
+      return map;
+    }, {});
+  dateSlider.min = activityList[0].date;
+  dateSlider.max = activityList[activityList.length - 1].date;
   dateSlider.value = dateSlider.max;
-  lines = toFeatures(activities);
+  lines = toFeatures(activityList);
 
   map.addSource('strava', lines);
 
   function lineWidth(max) {
     return ['interpolate', ['linear'], ['zoom'], 5, 1, 20, max];
   }
+
+  var popup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+  });
+  map.on('mouseenter', 'all', (e) => {
+    const features = e.features;
+    const activity = activities[features[0].id];
+    var description = activity.type + "<br>" + activity.name + "<br>" + new Date(activity.date).toISOString().slice(0, 10);
+    popup.setLngLat(e.lngLat)
+      .setHTML(description)
+      .addTo(map);
+  });
+
   map.addLayer({
     id: 'all',
     type: 'line',
@@ -166,6 +186,7 @@ function toActivity(activity) {
     path = polyline.toGeoJSON(activity.map.summary_polyline);
   }
   return {
+    id: activity.id,
     name: activity.name,
     type: activity.type,
     date: new Date(activity.start_date_local).getTime(),
@@ -176,17 +197,17 @@ function toActivity(activity) {
   };
 }
 
-function toFeatures(activities) {
-  activities = activities.filter(a => a.path);
+function toFeatures(activityList) {
+  activityList = activityList.filter(a => a.path);
   return {
     'type': 'geojson',
     'data': {
       'type': 'FeatureCollection',
       'features': 
-        activities.map(a => {
+        activityList.map(a => {
           return {
             'type': 'Feature',
-            'properties': {},
+            'id': a.id,
             'properties': {
               'age': (new Date() - a.date) / 1000 / 60 / 60 / 24,
               'time': a.date,
